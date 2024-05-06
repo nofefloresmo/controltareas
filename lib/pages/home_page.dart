@@ -3,6 +3,7 @@ import '../models/tarea.dart';
 import '../models/materia.dart';
 import '../controllers/tareaDB.dart';
 import '../controllers/materiaDB.dart';
+import '../controllers/conexion.dart';
 
 void main() {
   runApp(MyApp());
@@ -102,49 +103,62 @@ class _TareaPageState extends State<TareaPage> {
   void initState() {
     super.initState();
     _loadData();
+    // Conexion.deleteDB();
   }
 
-  void _loadData() async {
-    _tareas = await TareaDB.getTareas();
+  Future<void> _loadData() async {
     _materias = await MateriaDB.getMaterias();
+    _tareas = await TareaDB.getTareas();
+    if (_materias.isNotEmpty && _selectedMateriaId == null) {
+      _selectedMateriaId = _materias.first.idMateria;
+    }
     setState(() {});
   }
 
-  void _showAddTaskDialog() async {
+  void _showAddTaskDialog() {
+    if (_materias.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              "No hay materias disponibles. Por favor, agrega una materia primero.")));
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Agregar nueva tarea"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(labelText: "Descripción"),
-              ),
-              TextField(
-                controller: _fechaEntregaController,
-                decoration:
-                    const InputDecoration(labelText: "Fecha de Entrega"),
-              ),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: "Materia"),
-                value: _selectedMateriaId,
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedMateriaId = newValue;
-                  });
-                },
-                items:
-                    _materias.map<DropdownMenuItem<String>>((Materia materia) {
-                  return DropdownMenuItem<String>(
-                    value: materia.idMateria,
-                    child: Text(materia.nombre),
-                  );
-                }).toList(),
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  controller: _descripcionController,
+                  decoration: const InputDecoration(labelText: "Descripción"),
+                ),
+                TextField(
+                  controller: _fechaEntregaController,
+                  decoration:
+                      const InputDecoration(labelText: "Fecha de Entrega"),
+                ),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: "Materia"),
+                  value: _selectedMateriaId,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedMateriaId = newValue;
+                    });
+                  },
+                  items: _materias
+                      .map<DropdownMenuItem<String>>((Materia materia) {
+                    return DropdownMenuItem<String>(
+                      value: materia.idMateria,
+                      child: Text(materia.nombre),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -165,15 +179,22 @@ class _TareaPageState extends State<TareaPage> {
   }
 
   void _addNewTask() async {
-    final newTarea = Tarea(
-      idMateria: _selectedMateriaId!,
-      fEntrega: _fechaEntregaController.text,
-      descripcion: _descripcionController.text,
-    );
-    await TareaDB.insertTarea(newTarea);
-    _loadData();
-    _descripcionController.clear();
-    _fechaEntregaController.clear();
+    try {
+      final newTarea = Tarea(
+        idMateria: _selectedMateriaId!,
+        fEntrega: _fechaEntregaController.text,
+        descripcion: _descripcionController.text,
+      );
+      await TareaDB.insertTarea(newTarea);
+      _loadData();
+      _descripcionController.clear();
+      _fechaEntregaController.clear();
+    } catch (e) {
+      print('Error al insertar tarea: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error al insertar tarea: $e'),
+      ));
+    }
   }
 
   @override

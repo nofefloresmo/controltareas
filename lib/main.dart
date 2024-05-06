@@ -15,7 +15,7 @@ class AppU3P2 extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,
       ),
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }

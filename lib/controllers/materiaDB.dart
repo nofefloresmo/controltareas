@@ -25,6 +25,16 @@ class MateriaDB {
     });
   }
 
+  static Future<String> getIdMateriaByItsName(String nombreMateria) async {
+    final Database db = await Conexion.openDB();
+    final List<Map<String, dynamic>> maps = await db.query(
+      'MATERIA',
+      where: 'NOMBRE = ?',
+      whereArgs: [nombreMateria],
+    );
+    return maps[0]['IDMATERIA'];
+  }
+
   static Future<int> updateMateria(Materia m) async {
     final Database db = await Conexion.openDB();
     return await db.update(
