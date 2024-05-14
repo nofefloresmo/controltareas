@@ -107,23 +107,28 @@ class _TareaPageState extends State<TareaPage> {
   }
 
   Future<void> _loadData() async {
-    _materias = await MateriaDB.getMaterias();
-    _tareas = await TareaDB.getTareas();
-    if (_materias.isNotEmpty && _selectedMateriaId == null) {
-      _selectedMateriaId = _materias.first.idMateria;
-    }
-    setState(() {});
+    List<Materia> resultadoMaterias = await MateriaDB.getMaterias();
+    List<Tarea> resultadoTareas = await TareaDB.getTareas();
+    setState(() {
+      _materias = resultadoMaterias;
+      if (_materias.isNotEmpty) {
+        _selectedMateriaId = _materias.first.idMateria;
+      }
+      _tareas = resultadoTareas;
+    });
   }
 
-  void _showAddTaskDialog() {
+  Future<void> _showAddTaskDialog() async {
     if (_materias.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              "No hay materias disponibles. Por favor, agrega una materia primero.")));
+          content: Text("Por favor, añade materias antes de crear tareas.")));
       return;
     }
 
-    showDialog(
+    _descripcionController.clear();
+    _fechaEntregaController.clear();
+
+    var result = await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
@@ -160,22 +165,50 @@ class _TareaPageState extends State<TareaPage> {
               ],
             ),
           ),
-          actions: <Widget>[
+          actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancelar"),
+              onPressed: () {
+                if (_descripcionController.text.isEmpty ||
+                    _fechaEntregaController.text.isEmpty ||
+                    _selectedMateriaId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text("Todos los campos son obligatorios.")));
+                  return;
+                } else {
+                  Navigator.pop(context, true);
+                }
+              },
+              child: const Text("Agregar"),
             ),
             TextButton(
               onPressed: () {
-                _addNewTask();
-                Navigator.of(context).pop();
+                Navigator.pop(context);
               },
-              child: const Text("Agregar"),
+              child: const Text("Cancelar"),
             ),
           ],
         );
       },
     );
+
+    if (result == true) {
+      try {
+        final newTarea = Tarea(
+          idMateria: _selectedMateriaId!,
+          fEntrega: _fechaEntregaController.text,
+          descripcion: _descripcionController.text,
+        );
+        await TareaDB.insertTarea(newTarea);
+        _loadData();
+        _descripcionController.clear();
+        _fechaEntregaController.clear();
+      } catch (e) {
+        print('Error al insertar tarea: $e');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error al insertar tarea: $e'),
+        ));
+      }
+    }
   }
 
   void _addNewTask() async {

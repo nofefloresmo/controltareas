@@ -19,7 +19,7 @@ class TareaDB {
       return Tarea(
         idTarea: maps[i]['IDTAREA'],
         idMateria: maps[i]['IDMATERIA'],
-        fEntrega: maps[i]['F_ENTREGA'],
+        fEntrega: maps[i]['FENTREGA'],
         descripcion: maps[i]['DESCRIPCION'],
       );
     });
@@ -36,7 +36,7 @@ class TareaDB {
       return Tarea(
         idTarea: maps[i]['IDTAREA'],
         idMateria: maps[i]['IDMATERIA'],
-        fEntrega: maps[i]['F_ENTREGA'],
+        fEntrega: maps[i]['FENTREGA'],
         descripcion: maps[i]['DESCRIPCION'],
       );
     });
