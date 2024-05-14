@@ -237,31 +237,14 @@ class _TareaPageState extends State<TareaPage> {
         itemCount: _tareas.length,
         itemBuilder: (context, index) {
           final tarea = _tareas[index];
-          return Dismissible(
-            key: Key(tarea.idTarea.toString()),
-            onDismissed: (direction) async {
-              await TareaDB.deleteTarea(tarea.idTarea!);
-              setState(() {
-                _tareas.removeAt(index);
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Tarea eliminada")),
-              );
-            },
-            background: Stack(
-              alignment: Alignment.centerRight,
-              children: <Widget>[
-                Container(color: Colors.red),
-                Padding(
-                  padding: const EdgeInsets.only(right: 20.0),
-                  child: Icon(Icons.delete, color: Colors.white),
-                ),
-              ],
+          return ListTile(
+            leading: IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () =>
+                  _showEditTaskDialog(tarea), // Muestra el diálogo de edición
             ),
-            child: ListTile(
-              title: Text(tarea.descripcion),
-              subtitle: Text("Fecha de Entrega: ${tarea.fEntrega}"),
-            ),
+            title: Text(tarea.descripcion),
+            subtitle: Text("Fecha de Entrega: ${tarea.fEntrega}"),
           );
         },
       ),
@@ -271,6 +254,85 @@ class _TareaPageState extends State<TareaPage> {
         child: Icon(Icons.add),
       ),
     );
+  }
+
+  void _showEditTaskDialog(Tarea tarea) async {
+    // Pre-rellena los controladores con la información actual de la tarea
+    _descripcionController.text = tarea.descripcion;
+    _fechaEntregaController.text = tarea.fEntrega;
+    _selectedMateriaId = tarea.idMateria;
+
+    var result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Editar Tarea"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  controller: _descripcionController,
+                  decoration: const InputDecoration(labelText: "Descripción"),
+                ),
+                TextField(
+                  controller: _fechaEntregaController,
+                  decoration:
+                      const InputDecoration(labelText: "Fecha de Entrega"),
+                ),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: "Materia"),
+                  value: _selectedMateriaId,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedMateriaId = newValue;
+                    });
+                  },
+                  items: _materias
+                      .map<DropdownMenuItem<String>>((Materia materia) {
+                    return DropdownMenuItem<String>(
+                      value: materia.idMateria,
+                      child: Text(materia.nombre),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancelar"),
+            ),
+            TextButton(
+              onPressed: () {
+                if (_descripcionController.text.isEmpty ||
+                    _fechaEntregaController.text.isEmpty ||
+                    _selectedMateriaId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("Todos los campos son obligatorios.")),
+                  );
+                  return;
+                } else {
+                  Navigator.pop(context, true);
+                }
+              },
+              child: const Text("Guardar"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      // Actualiza la tarea en la base de datos
+      tarea.descripcion = _descripcionController.text;
+      tarea.fEntrega = _fechaEntregaController.text;
+      tarea.idMateria = _selectedMateriaId!;
+      await TareaDB.updateTarea(tarea);
+      _loadData(); // Recarga los datos para actualizar la lista
+    }
   }
 }
 
@@ -372,6 +434,11 @@ class _MateriaPageState extends State<MateriaPage> {
             },
             background: Container(color: Colors.red),
             child: ListTile(
+              leading: IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: () => _showEditMateriaDialog(
+                    materia), // Mostrar diálogo de edición
+              ),
               title: Text(materia.nombre),
               subtitle: Text(
                   "Semestre: ${materia.semestre}, Docente: ${materia.docente}"),
@@ -385,5 +452,67 @@ class _MateriaPageState extends State<MateriaPage> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  void _showEditMateriaDialog(Materia materia) async {
+    _nombreController.text = materia.nombre;
+    _semestreController.text = materia.semestre;
+    _docenteController.text = materia.docente;
+
+    var result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Editar Materia"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: _nombreController,
+                decoration: const InputDecoration(labelText: "Nombre"),
+              ),
+              TextField(
+                controller: _semestreController,
+                decoration: const InputDecoration(labelText: "Semestre"),
+              ),
+              TextField(
+                controller: _docenteController,
+                decoration: const InputDecoration(labelText: "Docente"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancelar"),
+            ),
+            TextButton(
+              onPressed: () {
+                if (_nombreController.text.isEmpty ||
+                    _semestreController.text.isEmpty ||
+                    _docenteController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("Todos los campos son obligatorios.")),
+                  );
+                  return;
+                } else {
+                  Navigator.pop(context, true);
+                }
+              },
+              child: const Text("Guardar"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      materia.nombre = _nombreController.text;
+      materia.semestre = _semestreController.text;
+      materia.docente = _docenteController.text;
+      await MateriaDB.updateMateria(materia);
+      _loadMaterias(); // Recargar los datos para actualizar la lista
+    }
   }
 }
