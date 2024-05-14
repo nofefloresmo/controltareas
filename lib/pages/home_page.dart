@@ -302,10 +302,24 @@ class _MateriaPageState extends State<MateriaPage> {
       body: ListView.builder(
         itemCount: _materias.length,
         itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(_materias[index].nombre),
-            subtitle: Text(
-                "Semestre: ${_materias[index].semestre}, Docente: ${_materias[index].docente}"),
+          final materia = _materias[index];
+          return Dismissible(
+            key: Key(materia.idMateria),
+            onDismissed: (direction) async {
+              await MateriaDB.deleteMateria(materia.idMateria);
+              setState(() {
+                _materias.removeAt(index);
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Materia eliminada")),
+              );
+            },
+            background: Container(color: Colors.red),
+            child: ListTile(
+              title: Text(materia.nombre),
+              subtitle: Text(
+                  "Semestre: ${materia.semestre}, Docente: ${materia.docente}"),
+            ),
           );
         },
       ),
