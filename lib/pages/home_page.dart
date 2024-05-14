@@ -236,9 +236,32 @@ class _TareaPageState extends State<TareaPage> {
       body: ListView.builder(
         itemCount: _tareas.length,
         itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(_tareas[index].descripcion),
-            subtitle: Text("Fecha de Entrega: ${_tareas[index].fEntrega}"),
+          final tarea = _tareas[index];
+          return Dismissible(
+            key: Key(tarea.idTarea.toString()),
+            onDismissed: (direction) async {
+              await TareaDB.deleteTarea(tarea.idTarea!);
+              setState(() {
+                _tareas.removeAt(index);
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Tarea eliminada")),
+              );
+            },
+            background: Stack(
+              alignment: Alignment.centerRight,
+              children: <Widget>[
+                Container(color: Colors.red),
+                Padding(
+                  padding: const EdgeInsets.only(right: 20.0),
+                  child: Icon(Icons.delete, color: Colors.white),
+                ),
+              ],
+            ),
+            child: ListTile(
+              title: Text(tarea.descripcion),
+              subtitle: Text("Fecha de Entrega: ${tarea.fEntrega}"),
+            ),
           );
         },
       ),
